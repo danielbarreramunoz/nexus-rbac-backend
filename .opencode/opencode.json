@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "project": "nexus-rbac-backend",
+  "stack": "nestjs",
+  "typescript": {
+    "strict": true
+  },
+  "packageManager": "npm",
+  "orchestration": {
+    "strategy": "subagents",
+    "agents": [
+      {
+        "id": "backend-scaffolder",
+        "role": "Inicializar estructura base NestJS con --strict",
+        "scope": "src/, tsconfig.json, nest-cli.json"
+      },
+      {
+        "id": "auth-rbac",
+        "role": "Implementar autenticacion y autorizacion RBAC",
+        "scope": "src/auth/, src/users/, src/roles/"
+      },
+      {
+        "id": "api-builder",
+        "role": "Construir controladores, servicios y DTOs con validacion",
+        "scope": "src/**/*.controller.ts, src/**/*.service.ts, src/**/*.dto.ts"
+      },
+      {
+        "id": "db-modeler",
+        "role": "Modelar persistencia y migraciones",
+        "scope": "src/database/, src/entities/"
+      },
+      {
+        "id": "tester",
+        "role": "Mantener tests unitarios y e2e en verde (vitest)",
+        "scope": "src/**/*.spec.ts, test/"
+      }
+    ],
+    "workflow": ["backend-scaffolder", "db-modeler", "auth-rbac", "api-builder", "tester"]
+  }
+}
