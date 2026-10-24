@@ -46,7 +46,7 @@ test/                        # Tests e2e
 
 ## Requisitos
 
-- Node.js LTS 20+ y npm
+- Node.js 22+ (las dependencias exigen `>=22.12`; se recomienda Node 24, igual que el CI) y npm 11+
 - PostgreSQL 14+ accesible (local o remoto)
 
 ## Instalación
@@ -131,11 +131,11 @@ Todos (salvo login/demo/lectura de tenants) requieren `Authorization: Bearer <JW
 
 ## Integración continua
 
-Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (GitHub Actions, `ubuntu-latest`, Node 20). Se ejecuta en cada `push` y `pull_request`:
+Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (GitHub Actions, `ubuntu-latest`, Node 24 + npm 11). Se ejecuta en cada `push` y `pull_request`:
 
 | Paso | Comando | Descripción |
 |---|---|---|
-| Install | `npm ci` | Instalación reproducible desde `package-lock.json` |
+| Install | `npm ci` | Instalación reproducible desde `package-lock.json` (requiere npm 11: el lock se genera con npm 11 y con npm 10 la resolución del árbol difiere) |
 | Lint | `npm run lint` | Oxlint sobre `src/` y `test/` |
 | Unit tests | `npm test` | Vitest (`*.spec.ts`, 11 tests) |
 | E2E tests | `npm run test:e2e` | Supertest con `AuthService` mockeado (no requiere base de datos) |
