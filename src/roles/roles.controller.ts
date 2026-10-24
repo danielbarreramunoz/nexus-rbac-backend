@@ -13,8 +13,8 @@ import {
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import type { JwtPayload } from '../auth/jwt-payload.interface.js';
-import type { CreateRoleDto } from './dto/create-role.dto.js';
-import type { UpdateRoleDto } from './dto/update-role.dto.js';
+import { CreateRoleDto } from './dto/create-role.dto.js';
+import { UpdateRoleDto } from './dto/update-role.dto.js';
 import { RolesService } from './roles.service.js';
 
 @Controller('roles')

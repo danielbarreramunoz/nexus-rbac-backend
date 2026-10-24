@@ -23,14 +23,17 @@ export class User {
   @Column({ length: 255, select: false })
   password: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   firstName: string | null;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   lastName: string | null;
 
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ default: false })
+  isProtected: boolean;
 
   @ManyToOne(() => Tenant, (tenant) => tenant.users, {
     nullable: true,
@@ -39,7 +42,7 @@ export class User {
   @JoinColumn({ name: 'tenantId' })
   tenant: Tenant | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   tenantId: string | null;
 
   @ManyToMany(() => Role, (role) => role.users, { cascade: false })

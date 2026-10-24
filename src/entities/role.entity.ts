@@ -21,8 +21,11 @@ export class Role {
   @Column({ length: 100 })
   name: string;
 
-  @Column({ length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   description: string | null;
+
+  @Column({ default: false })
+  isProtected: boolean;
 
   @ManyToOne(() => Tenant, (tenant) => tenant.roles, {
     nullable: true,
@@ -31,7 +34,7 @@ export class Role {
   @JoinColumn({ name: 'tenantId' })
   tenant: Tenant | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   tenantId: string | null;
 
   @ManyToMany(() => Permission, { cascade: false })

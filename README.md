@@ -1,114 +1,152 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Nexus RBAC · Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+[![CI](https://github.com/danielbarreramunoz/nexus-rbac-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/danielbarreramunoz/nexus-rbac-backend/actions/workflows/ci.yml)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+API REST multi-tenant con control de acceso basado en roles (RBAC), construida con **NestJS 12**, **TypeORM** y **PostgreSQL**. Emite JWT con el `tenantId`, los roles y los permisos del usuario; cada petición de datos se aísla por tenant a partir del token.
 
-## Description
+## Tecnologías
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Capa | Tecnología |
+|---|---|
+| Framework | NestJS 12 (módulos, inyección de dependencias) |
+| Lenguaje | TypeScript 6 (ESM, `type: module`) |
+| Auth | `@nestjs/jwt` + `passport` / `passport-jwt` (estrategia `jwt.strategy.ts`) |
+| ORM / DB | TypeORM 1.x + PostgreSQL (`pg`) |
+| Validación | `class-validator` + `class-transformer` (`ValidationPipe` global con `whitelist` y `forbidNonWhitelisted`) |
+| Config | `@nestjs/config` (variables de entorno globales) |
+| Tests | Vitest 4 (unitarios `*.spec.ts`), Supertest + config e2e (`vitest.config.e2e.ts`) |
+| Lint / formato | Oxlint, Prettier |
 
-## Project setup
+## Arquitectura
 
-```bash
-$ npm install
+```
+src/
+├── main.ts                  # Bootstrap: CORS, ValidationPipe global, puerto
+├── app.module.ts            # Agregado de módulos
+├── auth/                    # Login, estrategia JWT, guards y decoradores
+│   ├── auth.controller.ts   # POST /auth/login
+│   ├── auth.service.ts      # Valida credenciales (bcrypt) y firma el JWT
+│   ├── guards/              # jwt-auth, permissions, roles
+│   └── decorators/          # @Permissions(), @Roles(), @CurrentUser(), @Public()
+├── database/                # Configuración TypeORM (Postgres por variables de entorno)
+├── entities/                # Tenant, User, Role, Permission, Project
+├── tenants/ · users/ · roles/ · permissions/ · projects/
+│                            # Módulo + controlador + servicio + DTOs por recurso
+└── demo/                    # POST /demo/reset — restaura datos de demostración
+scripts/seed.cjs             # Seed idempotente (compila y ejecuta contra dist/)
+test/                        # Tests e2e
 ```
 
-## Compile and run the project
+**Modelo de seguridad (importante):**
+
+- El JWT contiene `sub`, `email`, `tenantId`, `roles[]` y `permissions[]` (`auth.service.ts:40-54`).
+- Los servicios aíslan por tenant con `scope(tenantId)`: si `tenantId` es `null` (SUPER_ADMIN) no hay filtro; si no, todo se restringe a su tenant (`users.service.ts:24-26`).
+- Los controladores exigen permisos con `@Permissions('users:read', …)` y roles con `@Roles('SUPER_ADMIN')` (ej. crear tenants).
+- Las cuentas demo protegidas (`isProtected`) no se pueden editar ni eliminar; se restauran con `/demo/reset`.
+
+## Requisitos
+
+- Node.js LTS 20+ y npm
+- PostgreSQL 14+ accesible (local o remoto)
+
+## Instalación
 
 ```bash
-# development
-$ npm run start
+cd nexus-rbac-backend
+npm install
 
-# watch mode
-$ npm run start:dev
+# 1. Copiar variables de entorno
+cp .env.example .env   # en Windows: copy .env.example .env
 
-# production mode
-$ npm run start:prod
+# 2. Editar .env con tus valores (ver tabla siguiente)
+
+# 3. Levantar en desarrollo (watch)
+npm run start:dev
+# La API queda en http://localhost:3003
 ```
 
-## Run tests
+### Variables de entorno (`.env`)
+
+| Variable | Ejemplo | Descripción |
+|---|---|---|
+| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASS` / `DB_NAME` | `localhost` / `5432` / `postgres` / `postgres` / `nexus_rbac` | Conexión a PostgreSQL |
+| `DB_SYNC` | `false` | `true` crea el esquema automáticamente (solo desarrollo) |
+| `DB_LOGGING` | `false` | Log de queries TypeORM |
+| `JWT_SECRET` | `cambiar-este-secreto` | Secreto de firma del JWT |
+| `JWT_EXPIRES_IN` | `3600s` | Expiración del token |
+| `PORT` | `3003` | Puerto de la API |
+| `CORS_ORIGINS` | `http://localhost:3002` | Orígenes permitidos (coma-separados) |
+
+## Datos demo
+
+Opción A — endpoint (con la API corriendo):
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+curl -X POST http://localhost:3003/demo/reset
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Opción B — script (compila y siembra contra `dist/`):
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run seed
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Crea el tenant `demo`, 14 permisos, roles `SUPER_ADMIN` / `TENANT_ADMIN` / `VIEWER` y 3 usuarios (password `Demo1234`):
 
-## Observability
+| Email | Rol | Tenant |
+|---|---|---|
+| `admin@nexus.demo` | SUPER_ADMIN | global (`null`, ve todo) |
+| `manager@nexus.demo` | TENANT_ADMIN | demo |
+| `viewer@nexus.demo` | VIEWER (solo lectura) | demo |
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+## Endpoints principales
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+| Método | Ruta | Permiso requerido |
+|---|---|---|
+| POST | `/auth/login` | público |
+| POST | `/demo/reset` | público |
+| GET | `/tenants`, `GET /tenants/:id` | público (lectura) |
+| POST / PATCH | `/tenants` | `SUPER_ADMIN` + `tenants:create` / `tenants:update` |
+| GET / POST | `/users` | `users:read` / `users:create` |
+| GET / PATCH / DELETE | `/users/:id` | `users:read` / `users:update` / `users:delete` |
+| GET / POST | `/roles` | `roles:read` / `roles:create` |
+| PATCH / DELETE | `/roles/:id` | `roles:update` / `roles:delete` |
+| GET | `/permissions` | autenticado |
+| GET / POST / PATCH / DELETE | `/projects`, `/projects/:id` | `projects:read/create/update/delete` |
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+Todos (salvo login/demo/lectura de tenants) requieren `Authorization: Bearer <JWT>`.
 
-## Resources
+## Scripts
 
-Check out a few resources that may come in handy when working with NestJS:
+| Comando | Descripción |
+|---|---|
+| `npm run start:dev` | Desarrollo con watch |
+| `npm run start` / `start:prod` | Arranque normal / producción (`node dist/main`) |
+| `npm run build` | Compila a `dist/` |
+| `npm run seed` | Build + seed demo (`scripts/seed.cjs`) |
+| `npm run test` | Unitarios (Vitest) |
+| `npm run test:e2e` | End-to-end (Supertest) |
+| `npm run test:cov` | Cobertura |
+| `npm run lint` / `npm run format` | Oxlint / Prettier |
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Integración continua
 
-## Support
+Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (GitHub Actions, `ubuntu-latest`, Node 20). Se ejecuta en cada `push` y `pull_request`:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+| Paso | Comando | Descripción |
+|---|---|---|
+| Install | `npm ci` | Instalación reproducible desde `package-lock.json` |
+| Lint | `npm run lint` | Oxlint sobre `src/` y `test/` |
+| Unit tests | `npm test` | Vitest (`*.spec.ts`, 11 tests) |
+| E2E tests | `npm run test:e2e` | Supertest con `AuthService` mockeado (no requiere base de datos) |
+| Build | `npm run build` | Compilación Nest a `dist/` |
 
-## Stay in touch
+## Producción (resumen)
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```bash
+npm install --omit=dev
+npm run build
+DB_SYNC=false npm run start:prod
+```
 
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Usa un `JWT_SECRET` robusto, `DB_SYNC=false` con migraciones propias y restringe `CORS_ORIGINS` al dominio del frontend.

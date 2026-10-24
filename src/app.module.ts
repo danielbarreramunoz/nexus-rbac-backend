@@ -4,6 +4,9 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { DatabaseModule } from './database/database.module.js';
+import { DemoModule } from './demo/demo.module.js';
+import { PermissionsModule } from './permissions/permissions.module.js';
+import { ProjectsModule } from './projects/projects.module.js';
 import { RolesModule } from './roles/roles.module.js';
 import { TenantsModule } from './tenants/tenants.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -16,6 +19,9 @@ import { UsersModule } from './users/users.module.js';
     TenantsModule,
     UsersModule,
     RolesModule,
+    PermissionsModule,
+    ProjectsModule,
+    DemoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository, type FindOptionsWhere } from 'typeorm';
 import { Permission } from '../entities/permission.entity.js';
@@ -70,6 +66,11 @@ export class RolesService {
     tenantId: string | null,
   ): Promise<Role> {
     const role = await this.findOne(id, tenantId);
+    if (role.isProtected) {
+      throw new ForbiddenException(
+        'Rol demo protegido: usa "Restablecer demo" para restaurarlo',
+      );
+    }
     if (dto.name !== undefined) role.name = dto.name;
     if (dto.description !== undefined) role.description = dto.description;
     if (dto.permissionIds !== undefined) {
@@ -80,6 +81,11 @@ export class RolesService {
 
   async remove(id: string, tenantId: string | null): Promise<void> {
     const role = await this.findOne(id, tenantId);
+    if (role.isProtected) {
+      throw new ForbiddenException(
+        'Rol demo protegido: usa "Restablecer demo" para restaurarlo',
+      );
+    }
     await this.roles.remove(role);
   }
 }

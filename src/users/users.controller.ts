@@ -13,8 +13,8 @@ import {
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Permissions } from '../auth/decorators/permissions.decorator.js';
 import type { JwtPayload } from '../auth/jwt-payload.interface.js';
-import type { CreateUserDto } from './dto/create-user.dto.js';
-import type { UpdateUserDto } from './dto/update-user.dto.js';
+import { CreateUserDto } from './dto/create-user.dto.js';
+import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UsersService } from './users.service.js';
 
 @Controller('users')
@@ -62,6 +62,6 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() actor: JwtPayload,
   ): Promise<void> {
-    await this.users.remove(id, actor.tenantId);
+    await this.users.remove(id, actor.tenantId, actor.sub);
   }
 }

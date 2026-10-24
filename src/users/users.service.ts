@@ -75,6 +75,11 @@ export class UsersService {
     tenantId: string | null,
   ): Promise<User> {
     const user = await this.findOne(id, tenantId);
+    if (user.isProtected) {
+      throw new ForbiddenException(
+        'Cuenta demo protegida: usa "Restablecer demo" para restaurarla',
+      );
+    }
     if (dto.firstName !== undefined) user.firstName = dto.firstName;
     if (dto.lastName !== undefined) user.lastName = dto.lastName;
     if (dto.isActive !== undefined) user.isActive = dto.isActive;
@@ -82,8 +87,16 @@ export class UsersService {
     return this.users.save(user);
   }
 
-  async remove(id: string, tenantId: string | null): Promise<void> {
+  async remove(id: string, tenantId: string | null, actorId: string): Promise<void> {
+    if (id === actorId) {
+      throw new ForbiddenException('No puedes eliminar tu propia cuenta');
+    }
     const user = await this.findOne(id, tenantId);
+    if (user.isProtected) {
+      throw new ForbiddenException(
+        'Cuenta demo protegida: usa "Restablecer demo" para restaurarla',
+      );
+    }
     await this.users.remove(user);
   }
 

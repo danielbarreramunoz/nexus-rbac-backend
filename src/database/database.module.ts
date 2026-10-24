@@ -5,6 +5,7 @@ import { Tenant } from '../entities/tenant.entity.js';
 import { User } from '../entities/user.entity.js';
 import { Role } from '../entities/role.entity.js';
 import { Permission } from '../entities/permission.entity.js';
+import { Project } from '../entities/project.entity.js';
 
 @Module({
   imports: [
@@ -15,10 +16,10 @@ import { Permission } from '../entities/permission.entity.js';
         type: 'postgres',
         host: config.get<string>('DB_HOST', 'localhost'),
         port: config.get<number>('DB_PORT', 5432),
-        username: config.get<string>('DB_USERNAME', 'postgres'),
-        password: config.get<string>('DB_PASSWORD', 'postgres'),
+        username: config.get<string>('DB_USERNAME', config.get<string>('DB_USER', 'postgres')),
+        password: config.get<string>('DB_PASSWORD', config.get<string>('DB_PASS', 'postgres')),
         database: config.get<string>('DB_NAME', 'nexus_rbac'),
-        entities: [Tenant, User, Role, Permission],
+        entities: [Tenant, User, Role, Permission, Project],
         synchronize: config.get<string>('DB_SYNC', 'false') === 'true',
         logging: config.get<string>('DB_LOGGING', 'false') === 'true',
       }),

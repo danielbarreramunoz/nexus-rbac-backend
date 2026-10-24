@@ -16,7 +16,7 @@ export class Permission {
   @Column({ length: 150, unique: true })
   code: string;
 
-  @Column({ length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   description: string | null;
 
   @ManyToMany(() => Role, (role) => role.permissions)

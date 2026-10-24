@@ -7,7 +7,7 @@ import { UsersService } from './users.service.js';
 
 describe('UsersService (tenant isolation)', () => {
   let service: UsersService;
-  const usersStore = { find: vi.fn(), findOne: vi.fn(), create: vi.fn(), save: vi.fn() };
+  const usersStore = { find: vi.fn(), findOne: vi.fn(), create: vi.fn(), save: vi.fn(), remove: vi.fn() };
   const rolesStore = { find: vi.fn() };
 
   beforeEach(async () => {
@@ -45,5 +45,16 @@ describe('UsersService (tenant isolation)', () => {
     expect(usersStore.findOne).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'u1', tenantId: 'tenant-1' } }),
     );
+  });
+
+  it('remove rechaza cuentas demo protegidas', async () => {
+    usersStore.findOne.mockResolvedValue({ id: 'u1', isProtected: true });
+    await expect(service.remove('u1', 'tenant-1', 'u2')).rejects.toThrow(/protegida/);
+    expect(usersStore.remove).not.toHaveBeenCalled();
+  });
+
+  it('remove rechaza la auto-eliminación', async () => {
+    await expect(service.remove('u1', 'tenant-1', 'u1')).rejects.toThrow(/propia/);
+    expect(usersStore.remove).not.toHaveBeenCalled();
   });
 });
